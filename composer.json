@@ -1,0 +1,52 @@
+{
+    "name": "tobento/app-rate-limiter",
+    "type": "library",
+    "description": "App rate limiter support.",
+    "keywords": [
+        "tobento",
+        "package",
+        "app",
+        "rate limiter"
+	],
+    "homepage": "https://www.tobento.ch",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tobias Strub",
+            "email": "info@tobento.ch",
+            "homepage": "https://www.tobento.ch"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "php": ">=8.0",
+        "tobento/app": "^1.0.7",
+        "tobento/app-migration": "^1.0",
+        "tobento/app-http": "^1.0 || ^1.1",
+        "tobento/app-cache": "^1.0.1",
+        "symfony/rate-limiter": "^6.0"
+    },  
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "vimeo/psalm": "^4.0",
+        "tobento/app-user": "^1.0",
+        "tobento/app-event": "^1.0.1",
+        "tobento/service-filesystem": "^1.0.5",
+        "nyholm/psr7": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tobento\\App\\RateLimiter\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tobento\\App\\RateLimiter\\Test\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "phpunit --testdox --colors=always",
+        "psalm": "vendor/bin/psalm"
+    }
+}
