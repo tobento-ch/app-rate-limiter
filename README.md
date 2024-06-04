@@ -157,6 +157,7 @@ Use the ```RateLimitRequests::class``` middleware to rate limit routes easily.
 use Tobento\App\AppFactory;
 use Tobento\App\RateLimiter\Middleware\RateLimitRequests;
 use Tobento\App\RateLimiter\Symfony\Registry\SlidingWindow;
+use Tobento\App\Http\Exception\TooManyRequestsException;
 
 $app = (new AppFactory())->createApp();
 
@@ -171,6 +172,7 @@ $app->dirs()
 // Adding boots:
 $app->boot(\Tobento\App\Http\Boot\ErrorHandler::class);
 $app->boot(\Tobento\App\Http\Boot\Routing::class);
+$app->boot(\Tobento\App\Http\Boot\RequesterResponser::class); // for redirection support
 $app->boot(\Tobento\App\RateLimiter\Boot\RateLimiter::class);
 $app->booting();
 
@@ -186,6 +188,25 @@ $app->route('POST', 'login', function() {
     
     // or by named rate limiter:
     //'registry' => 'login',
+]);
+
+$app->route('POST', 'register', function() {
+    // being rate limited!
+    return 'response';
+})->middleware([
+    RateLimitRequests::class,
+    'registry' => new SlidingWindow(limit: 5, interval: '5 minutes'),
+    
+    // You may specify a redirect uri or route
+    // which will redirect instead of throwing a TooManyRequestsException:
+    'redirectUri' => '/register',
+    'redirectRoute' => 'register',
+    
+    // You may specify a redirect message to be flashed.
+    // The :seconds parameter value will be set by the middleware.
+    'message' => 'Too many attempts. Please retry after :seconds seconds.',
+    'messageLevel' => 'error', // default
+    'messageKey' => 'email', // or null default
 ]);
 
 // Run the app:
