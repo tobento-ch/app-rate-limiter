@@ -31,6 +31,10 @@ use Tobento\Service\Middleware\MiddlewareDispatcherInterface;
 use Tobento\Service\Middleware\MiddlewareDispatcher;
 use Tobento\Service\Middleware\AutowiringMiddlewareFactory;
 use Tobento\Service\Middleware\FallbackHandler;
+use Tobento\Service\Responser\ResponserInterface;
+use Tobento\Service\Responser\Responser;
+use Tobento\Service\Responser\Middleware\Responser as ResponserMiddleware;
+use Tobento\Service\Routing;
 use Tobento\Service\Container\Container;
 use Tobento\Service\Clock\SystemClock;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -60,6 +64,35 @@ class RateLimitRequestsTest extends TestCase
         });
         
         return $container;
+    }
+    
+    private function addRedirectDependencies(Container $container): void
+    {
+        $container->set(ResponserInterface::class, function() {
+            return new Responser(
+                responseFactory: new Psr17Factory(),
+                streamFactory: new Psr17Factory(),
+            );
+        });
+        
+        $container->set(Routing\RouterInterface::class, function() use ($container) {
+            return new Routing\Router(
+                new Routing\RequestData(
+                    $_SERVER['REQUEST_METHOD'] ?? 'GET',
+                    rawurldecode($_SERVER['REQUEST_URI'] ?? ''),
+                    'example.com',
+                ),
+                new Routing\UrlGenerator(
+                    'https://example.com',
+                    'a-random-32-character-secret-signature-key',
+                ),
+                new Routing\RouteFactory(),
+                new Routing\RouteDispatcher($container, new Routing\Constrainer\Constrainer()),
+                new Routing\RouteHandler($container),
+                new Routing\MatchedRouteHandler($container),
+                new Routing\RouteResponseParser(),
+            );
+        });
     }
 
     public function testRateLimiting()
@@ -155,6 +188,147 @@ class RateLimitRequestsTest extends TestCase
             serverParams: []
         );
 
+        $md->handle($request);
+    }
+    
+    public function testRateLimitingRedirectsWithRedirectUriIfAttemptsExceeded()
+    {
+        $container = $this->getContainer();
+        $this->addRedirectDependencies($container);
+        
+        $md = $container->get(MiddlewareDispatcherInterface::class);
+        
+        $rateMw = [
+            RateLimitRequests::class,
+            'registry' => new FixedWindow(limit: 1, interval: '5 minutes'),
+            'redirectUri' => 'uri',
+            'message' => 'msg',
+            'messageLevel' => 'notice',
+            'messageKey' => 'foo',
+        ];
+        
+        $md->add(ResponserMiddleware::class, $rateMw);
+        
+        $request = (new Psr17Factory())->createServerRequest(
+            method: 'GET',
+            uri: 'foo',
+            serverParams: ['REMOTE_ADDR' => 'addr']
+        );
+
+        $md->handle($request);
+        
+        // second:
+        $md->add(ResponserMiddleware::class, $rateMw);
+        
+        $request = (new Psr17Factory())->createServerRequest(
+            method: 'GET',
+            uri: 'foo',
+            serverParams: ['REMOTE_ADDR' => 'addr']
+        );
+        
+        $response = $md->handle($request);
+        
+        $this->assertSame('uri', $response->getHeaderLine('Location'));
+        
+        $responser = $container->get(ResponserInterface::class);
+        $this->assertSame([
+            'level' => 'notice',
+            'message' => 'msg',
+            'context' => [],
+            'key' => 'foo',
+            'parameters' => [':seconds' => 300],
+            'logged' => false,
+        ], $responser->messages()->first()?->toArray());
+    }
+    
+    public function testRateLimitingRedirectsWithRedirectRouteIfAttemptsExceeded()
+    {
+        $container = $this->getContainer();
+        $this->addRedirectDependencies($container);
+        
+        $container->get(Routing\RouterInterface::class)->get('foo', function() {
+            return 'response';
+        })->name('foo');
+        
+        $md = $container->get(MiddlewareDispatcherInterface::class);
+        
+        $rateMw = [
+            RateLimitRequests::class,
+            'registry' => new FixedWindow(limit: 1, interval: '5 minutes'),
+            'redirectRoute' => 'foo',
+            'message' => 'msg',
+            'messageLevel' => 'notice',
+            'messageKey' => 'foo',
+        ];
+        
+        $md->add(ResponserMiddleware::class, $rateMw);
+        
+        $request = (new Psr17Factory())->createServerRequest(
+            method: 'GET',
+            uri: 'foo',
+            serverParams: ['REMOTE_ADDR' => 'addr']
+        );
+
+        $md->handle($request);
+        
+        // second:
+        $md->add(ResponserMiddleware::class, $rateMw);
+        
+        $request = (new Psr17Factory())->createServerRequest(
+            method: 'GET',
+            uri: 'foo',
+            serverParams: ['REMOTE_ADDR' => 'addr']
+        );
+        
+        $response = $md->handle($request);
+        
+        $this->assertSame('https://example.com/foo', $response->getHeaderLine('Location'));
+        
+        $responser = $container->get(ResponserInterface::class);
+        $this->assertSame([
+            'level' => 'notice',
+            'message' => 'msg',
+            'context' => [],
+            'key' => 'foo',
+            'parameters' => [':seconds' => 300],
+            'logged' => false,
+        ], $responser->messages()->first()?->toArray());
+    }
+    
+    public function testRateLimitingRedirectsWithRedirectRouteIfAttemptsExceededThrowsIfRouteNotExist()
+    {
+        $this->expectException(TooManyRequestsException::class);
+        
+        $container = $this->getContainer();
+        $this->addRedirectDependencies($container);
+        
+        $md = $container->get(MiddlewareDispatcherInterface::class);
+        
+        $rateMw = [
+            RateLimitRequests::class,
+            'registry' => new FixedWindow(limit: 1, interval: '5 minutes'),
+            'redirectRoute' => 'foo',
+        ];
+        
+        $md->add(ResponserMiddleware::class, $rateMw);
+        
+        $request = (new Psr17Factory())->createServerRequest(
+            method: 'GET',
+            uri: 'foo',
+            serverParams: ['REMOTE_ADDR' => 'addr']
+        );
+
+        $md->handle($request);
+        
+        // second:
+        $md->add(ResponserMiddleware::class, $rateMw);
+        
+        $request = (new Psr17Factory())->createServerRequest(
+            method: 'GET',
+            uri: 'foo',
+            serverParams: ['REMOTE_ADDR' => 'addr']
+        );
+        
         $md->handle($request);
     }
 }
