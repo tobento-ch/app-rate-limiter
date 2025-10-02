@@ -35,7 +35,7 @@ composer require tobento/app-rate-limiter
 
 ## Requirements
 
-- PHP 8.0 or greater
+- PHP 8.4 or greater
 
 # Documentation
 
@@ -59,7 +59,7 @@ use Tobento\App\RateLimiter\RegistriesInterface;
 use Tobento\App\RateLimiter\FingerprintInterface;
 
 // Create the app
-$app = (new AppFactory())->createApp();
+$app = new AppFactory()->createApp();
 
 // Add directories:
 $app->dirs()
@@ -98,7 +98,7 @@ use Tobento\App\RateLimiter\RateLimiterCreatorInterface;
 use Tobento\App\RateLimiter\Symfony\Registry\SlidingWindow;
 use Tobento\App\Http\Exception\TooManyRequestsException;
 
-$app = (new AppFactory())->createApp();
+$app = new AppFactory()->createApp();
 
 // Add directories:
 $app->dirs()
@@ -159,7 +159,7 @@ use Tobento\App\RateLimiter\Middleware\RateLimitRequests;
 use Tobento\App\RateLimiter\Symfony\Registry\SlidingWindow;
 use Tobento\App\Http\Exception\TooManyRequestsException;
 
-$app = (new AppFactory())->createApp();
+$app = new AppFactory()->createApp();
 
 // Add directories:
 $app->dirs()
