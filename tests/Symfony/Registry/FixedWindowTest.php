@@ -41,6 +41,7 @@ class FixedWindowTest extends TestCase
             [
                 'id' => 'api',
                 'storage' => 'inmemory',
+                'cache' => 'api-ratelimiter',
                 'policy' => 'fixed_window',
                 'limit' => 20,
                 'interval' => '60 Minutes',

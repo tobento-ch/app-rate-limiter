@@ -41,6 +41,7 @@ class SlidingWindowTest extends TestCase
             [
                 'id' => 'api',
                 'storage' => 'inmemory',
+                'cache' => 'api-ratelimiter',
                 'policy' => 'sliding_window',
                 'limit' => 20,
                 'interval' => '60 Minutes',

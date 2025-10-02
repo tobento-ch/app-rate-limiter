@@ -42,6 +42,7 @@ class TokenBucketTest extends TestCase
             [
                 'id' => 'api',
                 'storage' => 'inmemory',
+                'cache' => 'api-ratelimiter',
                 'policy' => 'token_bucket',
                 'limit' => 5000,
                 'rate' => ['amount' => 500, 'interval' => '60 Minutes'],
