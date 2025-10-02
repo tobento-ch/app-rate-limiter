@@ -58,6 +58,7 @@ final class SlidingWindow implements RegistryInterface
         return [
             'id' => $this->id,
             'storage' => $this->storage,
+            'cache' => $this->cache,
             'policy' => 'sliding_window',
             'limit' => $this->limit,
             'interval' => $this->interval,

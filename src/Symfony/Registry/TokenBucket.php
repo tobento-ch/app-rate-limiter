@@ -60,6 +60,7 @@ final class TokenBucket implements RegistryInterface
         return [
             'id' => $this->id,
             'storage' => $this->storage,
+            'cache' => $this->cache,
             'policy' => 'token_bucket',
             'limit' => $this->limit,
             'rate' => ['amount' => $this->rateAmount, 'interval' => $this->rateInterval],

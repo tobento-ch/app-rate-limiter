@@ -58,6 +58,7 @@ final class FixedWindow implements RegistryInterface
         return [
             'id' => $this->id,
             'storage' => $this->storage,
+            'cache' => $this->cache,
             'policy' => 'fixed_window',
             'limit' => $this->limit,
             'interval' => $this->interval,
