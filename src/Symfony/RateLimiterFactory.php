@@ -81,13 +81,13 @@ class RateLimiterFactory implements RateLimiterFactoryInterface
                 $storage = new Storage\InMemoryStorage();
                 break;
             default:
-                throw new LogicException(sprintf('Limiter storage "%s" does not exists, it must be either "cahce" or "inmemory".', $config['storage']));
+                throw new LogicException(sprintf('Limiter storage "%s" does not exists, it must be either "cache" or "inmemory".', $config['storage']));
         }
         
         unset($config['storage']);
         unset($config['cache']);
         
-        $limiter = (new SymfonyRateLimiterFactory(config: $config, storage: $storage))->create(sha1($id));
+        $limiter = new SymfonyRateLimiterFactory(config: $config, storage: $storage)->create(sha1($id));
         
         return new RateLimiter(limiter: $limiter);
     }
